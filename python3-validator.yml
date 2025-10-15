@@ -13,7 +13,7 @@ pool:
   name: Default
 
 steps:
-- checkout: self
+- checkout: git://$(System.TeamProject)/$(System.PullRequest.SourceRepositoryURI)@$(system.pullRequest.sourceBranch)
   displayName: 'Checkout PR source code'
 
 - task: UsePythonVersion@0
