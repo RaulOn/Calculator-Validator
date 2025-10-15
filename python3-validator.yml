@@ -1,0 +1,48 @@
+# Pull Request Build Validation Pipeline
+# Python application with tests and coverage for PR validation
+# https://learn.microsoft.com/azure/devops/pipelines/ecosystems/python
+
+# Trigger on pull requests to main branch
+pr:
+- main
+
+# Disable CI trigger (this is only for PRs)
+trigger: none
+
+pool:
+  name: Default
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.9'
+  displayName: 'Use Python 3.9'
+
+- script: |
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+  displayName: 'Install dependencies'
+
+- script: |
+    pip install flake8
+    flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+  displayName: 'Run lint tests'
+
+- script: |
+    pytest --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=xml --cov-report=html
+  displayName: 'Run pytest with coverage'
+
+- task: PublishTestResults@2
+  condition: succeededOrFailed()
+  inputs:
+    testResultsFiles: '**/test-*.xml'
+    testRunTitle: 'PR Validation - Test Results for Python 3.9'
+  displayName: 'Publish test results'
+
+- task: PublishCodeCoverageResults@2
+  inputs:
+    codeCoverageTool: Cobertura
+    summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+    reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+  displayName: 'Publish coverage results'
